@@ -114,7 +114,7 @@ namespace io {
 
     void TelegramHandler::handleResponse(const std::shared_ptr<Telegram>& telegram)
     {
-        std::string block_in_string(telegram->message.begin(),
+        const std::string block_in_string(telegram->message.begin(),
                                     telegram->message.end());
 
         if (telegram->type == telegram_type::ERROR_RESPONSE)

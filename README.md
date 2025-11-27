@@ -3,9 +3,11 @@
 <img src="ROSaicLogo.png" width="60%">
 
 ## Overview
-This repository hosts drivers for ROS 1 (Melodic and Noetic) and ROS 2 (Foxy, Galactic, Humble, Iron, Rolling, and beyond) - written in C++ - that work with [mosaic](https://web.septentrio.com/GH-SSN-modules) and [AsteRx](https://web.septentrio.com/INS-SSN-Rx) - two of Septentrio's cutting-edge GNSS and GNSS/INS [receiver families](https://web.septentrio.com/GH-SSN-RX) - and beyond. Both ROS 1 and ROS 2 are supported within one repository.
+This repository hosts drivers for ROS 2 (Humble, Iron, Rolling, and beyond) - written in C++ - that work with [mosaic](https://web.septentrio.com/GH-SSN-modules) and [AsteRx](https://web.septentrio.com/INS-SSN-Rx) - two of Septentrio's cutting-edge GNSS and GNSS/INS [receiver families](https://web.septentrio.com/GH-SSN-RX) - and beyond.
 
 Main Features:
+- (27.11.2025) Updated by LSY Lab, TUM: Supports publishing multiple raw GNSS messages in ROS for tightly coupled fusion. 
+- (27.11.2025) Updated by LSY Lab, TUM: Completely remove the ROS1 support. 
 - Supports Septentrio's single antenna GNSS, dual antenna GNSS and INS receivers
 - Supports serial, TCP/IP and USB connections, the latter being compatible with both serial (RNDIS) and TCP/IP protocols
 - Supports several ASCII (including key NMEA ones) messages and SBF (Septentrio Binary Format) blocks

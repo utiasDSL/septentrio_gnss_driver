@@ -167,7 +167,7 @@ namespace settings {
         }
     }
 
-    void autoPublish(ROSaicNodeBase* node, Settings& settings)
+    inline void autoPublish(ROSaicNodeBase* node, Settings& settings)
     {
         if (settings.auto_publish && !settings.configure_rx)
         {
@@ -183,6 +183,7 @@ namespace settings {
             settings.publish_gpgsa = true;
             settings.publish_gpgsv = true;
             settings.publish_measepoch = true;
+            settings.publish_measextra = true;
             settings.publish_pvtcartesian = true;
             settings.publish_pvtgeodetic = true;
             settings.publish_basevectorcart = true;
@@ -206,6 +207,33 @@ namespace settings {
             settings.publish_twist = true;
             if (!settings.publish_tf_ecef)
                 settings.publish_tf = true;
+            settings.publish_receiver_time = true;
+            settings.publish_beidou_alm = true;
+            settings.publish_beidou_ion = true;
+            settings.publish_beidou_nav = true;
+            settings.publish_beidou_utc = true;
+            settings.publish_diff_correction = true;
+            settings.publish_galileo_alm = true;
+            settings.publish_galileo_ion = true;
+            settings.publish_galileo_utc = true;
+            settings.publish_galileo_nav = true;
+            settings.publish_sbas_alm = true;
+            settings.publish_sbas_fast_corr = true;
+            settings.publish_sbas_longterm_corr = true;
+            settings.publish_sbas_nav = true;
+            settings.publish_sbas_network_time = true;
+            settings.publish_glonass_alm = true;
+            settings.publish_glonass_nav = true;
+            settings.publish_glonass_time = true;
+            settings.publish_gps_alm = true;
+            settings.publish_gps_nav = true;
+            settings.publish_gps_ion = true;
+            settings.publish_gps_utc = true;
+            settings.publish_ntrip_status = true;
+            settings.publish_satellite_visibility = true;
+            settings.publish_receiver_status = true;
+            settings.publish_quality_ind = true;
+            settings.publish_receiver_setup = true;
         } else if (settings.auto_publish && settings.configure_rx)
         {
             node->log(log_level::WARN,

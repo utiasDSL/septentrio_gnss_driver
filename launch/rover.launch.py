@@ -39,7 +39,7 @@ def generate_launch_description():
         arguments = "0 0 0 0 0 0 imu aux1".split(' ')
     )
 
-    default_file_name = 'rover.yaml'
+    default_file_name = 'gnss.yaml'
     name_arg_file_name = "file_name"
     arg_file_name = DeclareLaunchArgument(name_arg_file_name,
                                           default_value=TextSubstitution(text=str(default_file_name)))

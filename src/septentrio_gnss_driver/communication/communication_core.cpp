@@ -82,7 +82,7 @@ namespace io {
         processingThread_.join();
     }
 
-    void CommunicationCore::close() { manager_->close(); }
+    void CommunicationCore::close() const { manager_->close(); }
 
     void CommunicationCore::resetSettings()
     {
@@ -100,14 +100,14 @@ namespace io {
             {
                 send("siss, " + settings_->udp_ip_server + ",  0\x0D");
             }
-            for (auto ntrip : settings_->rtk.ntrip)
+            for (const auto& ntrip : settings_->rtk.ntrip)
             {
                 if (!ntrip.id.empty() && !ntrip.keep_open)
                 {
                     send("snts, " + ntrip.id + ", off \x0D");
                 }
             }
-            for (auto ip_server : settings_->rtk.ip_server)
+            for (const auto& ip_server : settings_->rtk.ip_server)
             {
                 if (!ip_server.id.empty() && !ip_server.keep_open)
                 {
@@ -115,7 +115,7 @@ namespace io {
                     send("siss, " + ip_server.id + ",  0\x0D");
                 }
             }
-            for (auto serial : settings_->rtk.serial)
+            for (const auto& serial : settings_->rtk.serial)
             {
                 if (!serial.port.empty() && !serial.keep_open)
                 {
@@ -180,7 +180,7 @@ namespace io {
                 return;
         }
         // If node is shut down before a connection could be established
-        if (!node_->ok())
+        if (!ROSaicNodeBase::ok())
             return;
 
         // Sends commands to the Rx regarding which SBF/NMEA messages it should
@@ -277,7 +277,6 @@ namespace io {
             return;
         }
 
-        uint8_t stream = 1;
         // Determining communication mode: TCP vs USB/Serial
         boost::smatch match;
         boost::regex_match(settings_->device, match,
@@ -290,6 +289,7 @@ namespace io {
 
         if (settings_->configure_rx)
         {
+            uint8_t stream = 1;
             node_->log(log_level::INFO, "Setting up Rx.");
 
             std::string pvt_interval =
@@ -1018,18 +1018,18 @@ namespace io {
         node_->log(log_level::DEBUG, "Leaving configureRx() method");
     }
 
-    void CommunicationCore::sendVelocity(const std::string& velNmea)
+    void CommunicationCore::sendVelocity(const std::string& velNmea) const
     {
         if (nmeaActivated_)
         {
             if (settings_->ins_vsm.use_stream_device)
             {
                 if (tcpClient_)
-                    tcpClient_.get()->send(velNmea);
+                    tcpClient_->send(velNmea);
             } else
             {
                 if (tcpVsm_)
-                    tcpVsm_.get()->send(velNmea);
+                    tcpVsm_->send(velNmea);
             }
         }
     }
@@ -1064,7 +1064,7 @@ namespace io {
 
     void CommunicationCore::send(const std::string& cmd)
     {
-        manager_.get()->send(cmd);
+        manager_->send(cmd);
         telegramHandler_.waitForResponse();
     }
 

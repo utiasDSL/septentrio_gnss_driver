@@ -60,8 +60,8 @@ GprmcMsg GprmcParser::parseASCII(const NMEASentence& sentence,
 {
 
     // Checking the length first, it should be between 13 and 14 elements
-    const size_t LEN_MIN = 13;
-    const size_t LEN_MAX = 14;
+    constexpr size_t LEN_MIN = 13;
+    constexpr size_t LEN_MAX = 14;
 
     if (sentence.get_body().size() > LEN_MAX || sentence.get_body().size() < LEN_MIN)
     {
@@ -82,8 +82,8 @@ GprmcMsg GprmcParser::parseASCII(const NMEASentence& sentence,
         msg.utc_seconds = 0;
     } else
     {
-        double utc_double;
-        if (string_utilities::toDouble(sentence.get_body()[1], utc_double))
+        if (double utc_double;
+            string_utilities::toDouble(sentence.get_body()[1], utc_double))
         {
             msg.utc_seconds =
                 parsing_utilities::convertUTCDoubleToSeconds(utc_double);

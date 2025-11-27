@@ -97,7 +97,7 @@ namespace io {
         virtual void close() = 0;
         //! Sends commands to the receiver
         virtual void send(const std::string& cmd) = 0;
-        bool connected() { return false; };
+        virtual bool connected() { return false; };
     };
 
     /**
@@ -108,7 +108,7 @@ namespace io {
      * IoType is either boost::asio::serial_port or boost::asio::tcp::ip
      */
     template <typename IoType>
-    class AsyncManager : public AsyncManagerBase
+    class AsyncManager final : public AsyncManagerBase
     {
     public:
         /**
@@ -118,17 +118,17 @@ namespace io {
          */
         AsyncManager(ROSaicNodeBase* node, TelegramQueue* telegramQueue);
 
-        ~AsyncManager();
+        ~AsyncManager() override;
 
-        [[nodiscard]] bool connect();
+        [[nodiscard]] bool connect() override;
 
-        void close();
+        void close() override;
 
         void setPort(const std::string& port);
 
-        void send(const std::string& cmd);
+        void send(const std::string& cmd) override;
 
-        bool connected();
+        bool connected() override;
 
     private:
         void receive();

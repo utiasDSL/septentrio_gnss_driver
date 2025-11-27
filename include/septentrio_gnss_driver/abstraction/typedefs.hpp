@@ -81,6 +81,43 @@
 #include <septentrio_gnss_driver/msg/vector_info_geod.hpp>
 #include <septentrio_gnss_driver/msg/vel_cov_cartesian.hpp>
 #include <septentrio_gnss_driver/msg/vel_cov_geodetic.hpp>
+#include <septentrio_gnss_driver/msg/aux_ant_position.hpp>
+#include <septentrio_gnss_driver/msg/aux_ant_positions.hpp>
+#include <septentrio_gnss_driver/msg/base_station.hpp>
+#include <septentrio_gnss_driver/msg/bds_alm.hpp>
+#include <septentrio_gnss_driver/msg/bds_ion.hpp>
+#include <septentrio_gnss_driver/msg/bds_nav.hpp>
+#include <septentrio_gnss_driver/msg/bds_utc.hpp>
+#include <septentrio_gnss_driver/msg/diff_corr_in.hpp>
+#include <septentrio_gnss_driver/msg/fast_corr.hpp>
+#include <septentrio_gnss_driver/msg/geo_fast_corr.hpp>
+#include <septentrio_gnss_driver/msg/gal_alm.hpp>
+#include <septentrio_gnss_driver/msg/gal_gst_gps.hpp>
+#include <septentrio_gnss_driver/msg/gal_ion.hpp>
+#include <septentrio_gnss_driver/msg/gal_nav.hpp>
+#include <septentrio_gnss_driver/msg/gal_utc.hpp>
+#include <septentrio_gnss_driver/msg/geo_alm.hpp>
+#include <septentrio_gnss_driver/msg/geo_long_term_corr.hpp>
+#include <septentrio_gnss_driver/msg/lt_corr.hpp>
+#include <septentrio_gnss_driver/msg/geo_nav.hpp>
+#include <septentrio_gnss_driver/msg/geo_network_time.hpp>
+#include <septentrio_gnss_driver/msg/glo_alm.hpp>
+#include <septentrio_gnss_driver/msg/glo_nav.hpp>
+#include <septentrio_gnss_driver/msg/glo_time.hpp>
+#include <septentrio_gnss_driver/msg/gps_alm.hpp>
+#include <septentrio_gnss_driver/msg/gps_ion.hpp>
+#include <septentrio_gnss_driver/msg/gps_nav.hpp>
+#include <septentrio_gnss_driver/msg/gps_utc.hpp>
+#include <septentrio_gnss_driver/msg/ntrip_client_connection.hpp>
+#include <septentrio_gnss_driver/msg/ntrip_client_status.hpp>
+#include <septentrio_gnss_driver/msg/sat_info.hpp>
+#include <septentrio_gnss_driver/msg/sat_visibility.hpp>
+#include <septentrio_gnss_driver/msg/receiver_setup.hpp>
+#include <septentrio_gnss_driver/msg/agc_state.hpp>
+#include <septentrio_gnss_driver/msg/receiver_status.hpp>
+#include <septentrio_gnss_driver/msg/quality_ind.hpp>
+#include <septentrio_gnss_driver/msg/meas_extra_channel.hpp>
+#include <septentrio_gnss_driver/msg/meas_extra.hpp>
 // NMEA msg includes
 #include <nmea_msgs/msg/gpgga.hpp>
 #include <nmea_msgs/msg/gpgsa.hpp>
@@ -140,6 +177,43 @@ typedef septentrio_gnss_driver::msg::VectorInfoCart VectorInfoCartMsg;
 typedef septentrio_gnss_driver::msg::VectorInfoGeod VectorInfoGeodMsg;
 typedef septentrio_gnss_driver::msg::VelCovCartesian VelCovCartesianMsg;
 typedef septentrio_gnss_driver::msg::VelCovGeodetic VelCovGeodeticMsg;
+typedef septentrio_gnss_driver::msg::NTRIPClientConnection NtripClientConnectionMsg;
+typedef septentrio_gnss_driver::msg::NTRIPClientStatus NtripClientStatusMsg;
+typedef septentrio_gnss_driver::msg::GPSAlm GPSAlmMsg;
+typedef septentrio_gnss_driver::msg::GPSIon GPSIonMsg;
+typedef septentrio_gnss_driver::msg::GPSNav GPSNavMsg;
+typedef septentrio_gnss_driver::msg::GPSUtc GPSUtcMsg;
+typedef septentrio_gnss_driver::msg::GLOAlm GLOAlmMsg;
+typedef septentrio_gnss_driver::msg::GLONav GLONavMsg;
+typedef septentrio_gnss_driver::msg::GLOTime GLOTimeMsg;
+typedef septentrio_gnss_driver::msg::GEOAlm GEOAlmMsg;
+typedef septentrio_gnss_driver::msg::GEONav GEONavMsg;
+typedef septentrio_gnss_driver::msg::LTCorr LTCorrMsg;
+typedef septentrio_gnss_driver::msg::GEOLongTermCorr GEOLongTermCorrMsg;
+typedef septentrio_gnss_driver::msg::FastCorr FastCorrMsg;
+typedef septentrio_gnss_driver::msg::GEOFastCorr GEOFastCorrMsg;
+typedef septentrio_gnss_driver::msg::GEONetworkTime GEONetworkTimeMsg;
+typedef septentrio_gnss_driver::msg::GALAlm GALAlmMsg;
+typedef septentrio_gnss_driver::msg::GALNav GALNavMsg;
+typedef septentrio_gnss_driver::msg::GALUtc GALUtcMsg;
+typedef septentrio_gnss_driver::msg::GALIon GALIonMsg;
+typedef septentrio_gnss_driver::msg::GALGstGps GALGstGpsMsg;
+typedef septentrio_gnss_driver::msg::DiffCorrIn DiffCorrInMsg;
+typedef septentrio_gnss_driver::msg::BDSAlm BDSAlmMsg;
+typedef septentrio_gnss_driver::msg::BDSIon BDSIonMsg;
+typedef septentrio_gnss_driver::msg::BDSNav BDSNavMsg;
+typedef septentrio_gnss_driver::msg::BDSUtc BDSUtcMsg;
+typedef septentrio_gnss_driver::msg::BaseStation BaseStationMsg;
+typedef septentrio_gnss_driver::msg::AuxAntPosition AuxAntPositionMsg;
+typedef septentrio_gnss_driver::msg::AuxAntPositions AuxAntPositionsMsg;
+typedef septentrio_gnss_driver::msg::SatInfo SatInfoMsg;
+typedef septentrio_gnss_driver::msg::SatVisibility SatVisibilityMsg;
+typedef septentrio_gnss_driver::msg::AGCState AGCStateMsg;
+typedef septentrio_gnss_driver::msg::ReceiverStatus ReceiverStatusMsg;
+typedef septentrio_gnss_driver::msg::QualityInd QuantityIndMsg;
+typedef septentrio_gnss_driver::msg::ReceiverSetup ReceiverSetupMsg;
+typedef septentrio_gnss_driver::msg::MeasExtraChannel MeasExtraChannelMsg;
+typedef septentrio_gnss_driver::msg::MeasExtra MeasExtraMsg;
 
 // NMEA message
 typedef nmea_msgs::msg::Gpgga GpggaMsg;
@@ -192,15 +266,15 @@ namespace log_level {
 class ROSaicNodeBase : public rclcpp::Node
 {
 public:
-    ROSaicNodeBase(const rclcpp::NodeOptions& options) :
+    explicit ROSaicNodeBase(const rclcpp::NodeOptions& options) :
         Node("septentrio_gnss", options), tf2Publisher_(this),
         tfBuffer_(this->get_clock()), tfListener_(tfBuffer_)
     {
     }
 
-    ~ROSaicNodeBase() {}
+    ~ROSaicNodeBase() override = default;
 
-    bool ok() { return rclcpp::ok(); }
+    static bool ok() { return rclcpp::ok(); }
 
     const Settings* settings() const { return &settings_; }
 
@@ -327,15 +401,14 @@ public:
                 return;
         }
 
-        auto it = topicMap_.find(topic);
-        if (it != topicMap_.end())
+        if (auto it = topicMap_.find(topic); it != topicMap_.end())
         {
             typename rclcpp::Publisher<M>::SharedPtr ptr =
                 std::any_cast<typename rclcpp::Publisher<M>::SharedPtr>(it->second);
             ptr->publish(msg);
         } else
         {
-            if (this->ok())
+            if (ROSaicNodeBase::ok())
             {
                 typename rclcpp::Publisher<M>::SharedPtr pub =
                     this->create_publisher<M>(
@@ -437,29 +510,29 @@ public:
     /**
      * @brief Check if Rx is INS
      */
-    bool isIns() { return capabilities_.is_ins; }
+    bool isIns() const { return capabilities_.is_ins; }
 
     /**
      * @brief Check if Rx has heading
      */
-    bool hasHeading() { return capabilities_.has_heading; }
+    bool hasHeading() const { return capabilities_.has_heading; }
 
     /**
      * @brief Check if Rx has improved VSM handling
      */
-    bool hasImprovedVsmHandling() { return capabilities_.has_improved_vsm_handling; }
+    bool hasImprovedVsmHandling() const { return capabilities_.has_improved_vsm_handling; }
 
 private:
     void callbackOdometry(const nav_msgs::msg::Odometry::ConstSharedPtr odo)
     {
-        Timestamp stamp = timestampFromRos(odo->header.stamp);
+        const Timestamp stamp = timestampFromRos(odo->header.stamp);
 
         processTwist(stamp, odo->twist);
     }
 
     void callbackTwist(const TwistWithCovarianceStampedMsg::ConstSharedPtr twist)
     {
-        Timestamp stamp = timestampFromRos(twist->header.stamp);
+        const Timestamp stamp = timestampFromRos(twist->header.stamp);
 
         processTwist(stamp, twist->twist);
     }

@@ -332,6 +332,68 @@ struct Settings
     bool publish_tf;
     //! Whether or not to publish the tf of the localization
     bool publish_tf_ecef;
+    //! Whether or not to publish the receiver time
+    bool publish_receiver_time;
+    //! Whether or not to publish the aux. antenna position
+    bool publish_auxant_position;
+    //! Whether or not to publish the basestation info
+    bool publish_basestation;
+    //! Whether or not to publish the beidou alm block
+    bool publish_beidou_alm;
+    //! Whether or not to publish the beidou iono block
+    bool publish_beidou_ion;
+    //! Whether or not to publish the beidou ephemeris block
+    bool publish_beidou_nav;
+    //! Whether or not to publish the beidou utc block
+    bool publish_beidou_utc;
+    //! Whether or not to publish the differential correction data
+    bool publish_diff_correction;
+    //! Whether or not to publish the galileo alm data
+    bool publish_galileo_alm;
+    //! Whether or not to publish the galileo gst gps data
+    bool publish_galileo_gst_gps;
+    //! Whether or not to publish the galileo ion data
+    bool publish_galileo_ion;
+    //! Whether or not to publish the galileo ephemeris data
+    bool publish_galileo_nav;
+    //! Whether or not to publish the galileo utc data
+    bool publish_galileo_utc;
+    //! Whether or not to publish the sbas alm data
+    bool publish_sbas_alm;
+    //! Whether or not to publish the sbas fast correction data
+    bool publish_sbas_fast_corr;
+    //! Whether or not to publish the sbas longterm data
+    bool publish_sbas_longterm_corr;
+    //! Whether or not to publish the sbas ephemeris data
+    bool publish_sbas_nav;
+    //! Whether or not to publish the sbas network time
+    bool publish_sbas_network_time;
+    //! Whether or not to publish the glonass alm data
+    bool publish_glonass_alm;
+    //! Whether or not to publish the glonass ephemeris data
+    bool publish_glonass_nav;
+    //! Whether or not to publish the glonass time
+    bool publish_glonass_time;
+    //! Whether or not to publish the gps alm data
+    bool publish_gps_alm;
+    //! Whether or not to publish the gps ephemeris data
+    bool publish_gps_nav;
+    //! Whether or not to publish the gps iono data
+    bool publish_gps_ion;
+    //! Whether or not to publish the gps utc data
+    bool publish_gps_utc;
+    //! Whether or not to publish the ntrip status
+    bool publish_ntrip_status;
+    //! Whether or not to publish the satellite visibility
+    bool publish_satellite_visibility;
+    //! Whether or not to publish the raw receiver status
+    bool publish_receiver_status;
+    //! Whether or not to publish the raw quality indicators
+    bool publish_quality_ind;
+    //! Whether or not to publish the receiver setup
+    bool publish_receiver_setup;
+    //! Whether or not to publish the extra measurement
+    bool publish_measextra;
     //! Wether local frame should be inserted into tf
     bool insert_local_frame = false;
     //! Frame id of the local frame to be inserted

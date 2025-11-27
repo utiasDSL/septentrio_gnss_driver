@@ -3,7 +3,7 @@
 # GNSS/INS Parameters
 septentrio_gnss_driver:
   ros__parameters:
-    device: tcp://192.168.3.1:28784
+    device: tcp://192.168.178.75:28784
 
     serial:
       baudrate: 921600
@@ -11,19 +11,23 @@ septentrio_gnss_driver:
 
     stream_device:
       tcp:
-        ip_server: ""
-        port: 0        
+        ip_server: "tcp://192.168.178.75"
+        port: 28785
       udp:
         ip_server: ""
         port: 0
         unicast_ip: ""
 
-    configure_rx: true
+    configure_rx: false
+
+    login:
+      user: "haoming"
+      password: "root"
 
     custom_commands_file: ""  
 
     osnma:
-      mode: "off"
+      mode: "loose"
       ntp_server: ""
       keep_open: true
 
@@ -109,7 +113,7 @@ septentrio_gnss_driver:
 
     publish:
       # For both GNSS and INS Rxs
-      auto_publish: false
+      auto_publish: true
       publish_only_valid: false
       navsatfix: false
       gpsfix: true

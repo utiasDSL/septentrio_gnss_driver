@@ -62,12 +62,7 @@
 #include <condition_variable>
 
 // ROSaic includes
-#ifdef ROS2
 #include <septentrio_gnss_driver/abstraction/typedefs.hpp>
-#endif
-#ifdef ROS1
-#include <septentrio_gnss_driver/abstraction/typedefs_ros1.hpp>
-#endif
 #include <septentrio_gnss_driver/communication/message_handler.hpp>
 #include <septentrio_gnss_driver/communication/telegram.hpp>
 
@@ -115,7 +110,7 @@ namespace io {
     {
 
     public:
-        TelegramHandler(ROSaicNodeBase* node) : node_(node), messageHandler_(node) {}
+        explicit TelegramHandler(ROSaicNodeBase* node) : node_(node), messageHandler_(node) {}
 
         ~TelegramHandler()
         {

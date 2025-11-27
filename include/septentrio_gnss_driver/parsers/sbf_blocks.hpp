@@ -146,10 +146,10 @@ struct Dop
 };
 
 /**
- * @class ReceiverSetup
+ * @class ReceiverSetupT
  * @brief Struct for the SBF block "ReceiverSetup"
  */
-struct ReceiverSetup
+struct ReceiverSetupT
 {
     BlockHeaderMsg block_header;
 
@@ -175,25 +175,62 @@ struct ReceiverSetup
     uint8_t monument_idx;
     uint8_t receiver_idx;
     std::string country_code;
+
+    void toROSMsg(ReceiverSetupMsg &msg) const
+    {
+        msg.block_header = this->block_header;
+        msg.marker_name = this->marker_name;
+        msg.marker_nbr = this->marker_number;
+        msg.observer = this->observer;
+        msg.agency = this->agency;
+        msg.rx_serial_nbr = this->rx_serial_number;
+        msg.rx_name = this->rx_name;
+        msg.rx_version = this->rx_version;
+        msg.ant_serial_nbr = this->ant_serial_nbr;
+        msg.ant_type = this->ant_type;
+        msg.delta_h = this->delta_h;
+        msg.delta_e = this->delta_e;
+        msg.delta_n = this->delta_n;
+        msg.marker_type = this->marker_type;
+        msg.gnss_fw_version = this->gnss_fw_version;
+        msg.product_name = this->product_name;
+        msg.latitude = this->latitude;
+        msg.longitude = this->longitude;
+        msg.height = this->height;
+        msg.station_code = this->station_code;
+        msg.monument_idx = this->monument_idx;
+        msg.receiver_idx = this->receiver_idx;
+        msg.country_code = this->country_code;
+    }
 };
 
 /**
- * @class QualityInd
+ * @class QualityIndT
  * @brief Struct for the SBF block "QualityInd"
  */
-struct QualityInd
+struct QualityIndT
 {
     BlockHeaderMsg block_header;
 
     uint8_t n = 0;
 
     std::vector<uint16_t> indicators;
+
+    void toROSMsg(QuantityIndMsg& msg) const
+    {
+        msg.block_header = this->block_header;
+        msg.n = this->n;
+        for (const auto& ind : this->indicators)
+        {
+            msg.indicators.push_back(ind);
+        }
+    }
 };
 
 /**
  * @brief Struct for the SBF sub-block "AGCState"
  */
-struct AgcState
+struct AgcStateT
 {
     uint8_t frontend_id;
     int8_t gain;
@@ -202,10 +239,10 @@ struct AgcState
 };
 
 /**
- * @class ReceiverStatus
+ * @class ReceiverStatusT
  * @brief Struct for the SBF block "ReceiverStatus"
  */
-struct ReceiverStatus
+struct ReceiverStatusT
 {
     BlockHeaderMsg block_header;
 
@@ -219,7 +256,30 @@ struct ReceiverStatus
     uint8_t cmd_count;
     uint8_t temperature;
 
-    std::vector<AgcState> agc_state;
+    std::vector<AgcStateT> agc_state;
+
+    void toROSMsg(ReceiverStatusMsg& ros_msg) const
+    {
+        ros_msg.block_header = this->block_header;
+        ros_msg.cpu_load = this->cpu_load;
+        ros_msg.ext_error = this->ext_error;
+        ros_msg.up_time = this->up_time;
+        ros_msg.rx_error = this->rx_error;
+        ros_msg.rx_state = this->rx_status;
+        ros_msg.n = this->n;
+        ros_msg.sb_length = this->sb_length;
+        ros_msg.cmd_count = this->cmd_count;
+        ros_msg.temperature = this->temperature;
+        for (const auto& [frontend_id, gain, sample_var, blanking_stat] : this->agc_state)
+        {
+            AGCStateMsg agc_msg;
+            agc_msg.blanking_stat = blanking_stat;
+            agc_msg.sample_var = sample_var;
+            agc_msg.front_end_id = frontend_id;
+            agc_msg.gain = gain;
+            ros_msg.agc_states.emplace_back(agc_msg);
+        }
+    }
 };
 
 /**
@@ -372,13 +432,13 @@ template <typename It, typename Hdr>
     qiLittleEndianParser(it, block_header.sync_1);
     if (block_header.sync_1 != SBF_SYNC_1)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong sync byte 1.");
+        node->log(log_level::ERROR, "BlockHeaderParser error: Wrong sync byte 1.");
         return false;
     }
     qiLittleEndianParser(it, block_header.sync_2);
     if (block_header.sync_2 != SBF_SYNC_2)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong sync byte 2.");
+        node->log(log_level::ERROR, "BlockHeaderParser error: Wrong sync byte 2.");
         return false;
     }
     qiLittleEndianParser(it, block_header.crc);
@@ -425,7 +485,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.n2);
     if (msg.n2 > MAXSB_CHANNELSTATEINFO)
     {
-        node->log(log_level::ERROR, "Parse error: Too many ChannelStateInfo " +
+        node->log(log_level::ERROR, "ChannelSatInfoParser error: Too many ChannelStateInfo " +
                                         std::to_string(msg.n2));
         return false;
     }
@@ -452,7 +512,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4013)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ChannelStatusParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -460,7 +520,7 @@ template <typename It>
     if (msg.n > MAXSB_CHANNELSATINFO)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Too many ChannelSatInfo " + std::to_string(msg.n));
+                  "ChannelStatusParser error: Too many ChannelSatInfo " + std::to_string(msg.n));
         return false;
     }
     qiLittleEndianParser(it, msg.sb1_length);
@@ -474,7 +534,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ChannelStatusParser error: iterator past end.");
         return false;
     }
     return true;
@@ -492,7 +552,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4001)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "DOPParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -511,7 +571,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.vpl);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "DOPParser error: iterator past end.");
         return false;
     }
     return true;
@@ -562,7 +622,7 @@ template <typename It>
     std::advance(it, sb1_length - 20); // skip padding
     if (msg.n2 > MAXSB_MEASEPOCH_T2)
     {
-        node->log(log_level::ERROR, "Parse error: Too many MeasEpochChannelType2 " +
+        node->log(log_level::ERROR, "MeasEpochChannelType1Parser error: Too many MeasEpochChannelType2 " +
                                         std::to_string(msg.n2));
         return false;
     }
@@ -586,14 +646,14 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4027)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "MeasEpochParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
     qiLittleEndianParser(it, msg.n);
     if (msg.n > MAXSB_MEASEPOCH_T1)
     {
-        node->log(log_level::ERROR, "Parse error: Too many MeasEpochChannelType1 " +
+        node->log(log_level::ERROR, "MeasEpochParser error: Too many MeasEpochChannelType1 " +
                                         std::to_string(msg.n));
         return false;
     }
@@ -610,9 +670,92 @@ template <typename It>
                                          msg.sb2_length))
             return false;
     }
+
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "MeasEpochParser error: iterator past end.");
+        return false;
+    }
+    return true;
+};
+
+
+/**
+ * MeasExtraChannelParser
+ * @brief Qi based parser for the SBF sub-block "MeasExtraChannel"
+ */
+template <typename It>
+[[nodiscard]] bool MeasExtraChannelParser(ROSaicNodeBase* node, It& it,
+                                          MeasExtraChannelMsg& msg,
+                                          uint8_t sb_length,
+                                          uint8_t revision)
+{
+    qiLittleEndianParser(it, msg.rx_channel);
+    qiLittleEndianParser(it, msg.type);
+    qiLittleEndianParser(it, msg.mp_correction);
+    qiLittleEndianParser(it, msg.smoothing_correction);
+    qiLittleEndianParser(it, msg.code_var);
+    qiLittleEndianParser(it, msg.carrier_var);
+    qiLittleEndianParser(it, msg.lock_time);
+
+    uint8_t skip_bytes = 12;
+    if (revision > 0)
+    {
+        qiLittleEndianParser(it, msg.cum_loss_cont);
+        qiLittleEndianParser(it, msg.carrier_var);
+        skip_bytes += 2; // skip padding
+    }
+
+    if (revision > 1)
+    {
+        qiLittleEndianParser(it, msg.info);
+        skip_bytes += 1; // skip padding
+    }
+
+    if (revision > 2)
+    {
+        qiLittleEndianParser(it, msg.misc);
+        // ToDo: this loops strange,
+        // ToDo: but it seems that either the manuel or the firmware is inconsistant
+        skip_bytes += 2;
+    }
+    std::advance(it, sb_length - skip_bytes); // skip padding
+    return true;
+};
+
+/**
+ * MeasExtraParser
+ * @brief Qi based parser for the SBF block "MeasExtra"
+ */
+template <typename It>
+[[nodiscard]] bool MeasExtraParser(ROSaicNodeBase* node, It it, It itEnd,
+                                   MeasExtraMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4000)
+    {
+        node->log(log_level::ERROR, "MeasExtraParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    qiLittleEndianParser(it, msg.doppler_var_factor);
+
+    msg.channels.resize(msg.n);
+    for (auto& channel : msg.channels)
+    {
+        if (!MeasExtraChannelParser(node, it, channel, msg.sb_length, msg.block_header.revision))
+            return false;
+    }
+    if (it > itEnd)
+    {
+        std::cout << "Iterator offset = " << std::distance(itEnd, it) << "\n";
+        node->log(log_level::ERROR, "MeasExtraParser error: iterator past end. Rev: " + std::to_string(msg.block_header.revision));
+        node->log(log_level::ERROR, "MeasExtraParser error: n " + std::to_string(msg.n));
+        node->log(log_level::ERROR, "MeasExtraParser error: sb_length " + std::to_string(msg.sb_length));
+
         return false;
     }
     return true;
@@ -630,7 +773,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4245)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "GalAuthStatusParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -642,7 +785,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.gps_authentic_mask);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "GalAuthStatusParser error: iterator past end.");
         return false;
     }
     return true;
@@ -658,7 +801,8 @@ void RfBandParser(It& it, RfBandMsg& msg, uint8_t sb_length)
     qiLittleEndianParser(it, msg.frequency);
     qiLittleEndianParser(it, msg.bandwidth);
     qiLittleEndianParser(it, msg.info);
-    std::advance(it, sb_length - 7); // skip padding
+    qiLittleEndianParser(it, msg.power);
+    std::advance(it, sb_length - 8); // skip padding
 };
 
 /**
@@ -673,7 +817,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4092)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "RfStatusParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -688,7 +832,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "RfStatusParser error: iterator past end.");
         return false;
     }
     return true;
@@ -700,13 +844,13 @@ template <typename It>
  */
 template <typename It>
 [[nodiscard]] bool ReceiverSetupParser(ROSaicNodeBase* node, It it, It itEnd,
-                                       ReceiverSetup& msg)
+                                       ReceiverSetupT& msg, ReceiverSetupMsg& ros_msg)
 {
     if (!BlockHeaderParser(node, it, msg.block_header))
         return false;
     if (msg.block_header.id != 5902)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ReceiverSetupParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -746,9 +890,10 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ReceiverSetupParser error: iterator past end.");
         return false;
     }
+    msg.toROSMsg(ros_msg);
     return true;
 };
 
@@ -764,7 +909,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5914)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ReceiverTimesParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -778,7 +923,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.sync_level);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ReceiverTimesParser error: iterator past end.");
         return false;
     }
     return true;
@@ -796,7 +941,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4006)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "PVTCartesianParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -834,7 +979,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "PVTCartesianParser error: iterator past end.");
         return false;
     }
     return true;
@@ -852,7 +997,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4007)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "PVTGeodeticParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -890,7 +1035,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "PVTGeodeticParser error: iterator past end.");
         return false;
     }
     return true;
@@ -908,7 +1053,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5938)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "AttEulerParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -931,7 +1076,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "AttEulerParser error: iterator past end.");
         return false;
     }
     return true;
@@ -950,7 +1095,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5939)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "AttCovEulerParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -969,7 +1114,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "AttCovEulerParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1012,7 +1157,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4043)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "BaseVectorCartParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1020,7 +1165,7 @@ template <typename It>
     if (msg.n > MAXSB_NBVECTORINFO)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Too many VectorInfoCart " + std::to_string(msg.n));
+                  "BaseVectorCartParser error: Too many VectorInfoCart " + std::to_string(msg.n));
         return false;
     }
     qiLittleEndianParser(it, msg.sb_length);
@@ -1031,7 +1176,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "BaseVectorCartParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1074,7 +1219,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4028)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "BaseVectorGeodParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1082,7 +1227,7 @@ template <typename It>
     if (msg.n > MAXSB_NBVECTORINFO)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Too many VectorInfoGeod " + std::to_string(msg.n));
+                  "BaseVectorGeodParser error: Too many VectorInfoGeod " + std::to_string(msg.n));
         return false;
     }
     qiLittleEndianParser(it, msg.sb_length);
@@ -1093,7 +1238,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "BaseVectorGeodParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1112,7 +1257,7 @@ template <typename It>
         return false;
     if ((msg.block_header.id != 4225) && (msg.block_header.id != 4229))
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "INSNavCartParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1228,7 +1373,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "INSNavCartParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1246,7 +1391,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5905)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "PosCovCartesianParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1264,7 +1409,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.cov_zb);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "PosCovCartesianParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1282,7 +1427,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5906)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "PosCovGeodeticParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1300,7 +1445,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.cov_hb);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "PosCovGeodeticParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1318,7 +1463,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5907)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "VelCovCartesianParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1336,7 +1481,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.cov_vzdt);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "VelCovCartesianParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1354,7 +1499,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5908)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "VelCovGeodeticParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1372,7 +1517,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.cov_vudt);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "VelCovGeodeticParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1384,13 +1529,13 @@ template <typename It>
  */
 template <typename It>
 [[nodiscard]] bool QualityIndParser(ROSaicNodeBase* node, It it, It itEnd,
-                                    QualityInd& msg)
+                                    QualityIndT& msg, QuantityIndMsg& ros_msg)
 {
     if (!BlockHeaderParser(node, it, msg.block_header))
         return false;
     if (msg.block_header.id != 4082)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "QualityIndParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1398,21 +1543,22 @@ template <typename It>
     if (msg.n > 40)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Too many indicators " + std::to_string(msg.n));
+                  "QualityIndParser error: Too many indicators " + std::to_string(msg.n));
         return false;
     }
     ++it; // reserved
     msg.indicators.resize(msg.n);
     std::vector<uint16_t> indicators;
-    for (auto& indicators : msg.indicators)
+    for (auto& indicator : msg.indicators)
     {
-        qiLittleEndianParser(it, indicators);
+        qiLittleEndianParser(it, indicator);
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "QualityIndParser error: iterator past end.");
         return false;
     }
+    msg.toROSMsg(ros_msg);
     return true;
 };
 
@@ -1421,7 +1567,7 @@ template <typename It>
  * @brief Struct for the SBF sub-block "AGCState"
  */
 template <typename It>
-void AgcStateParser(It it, AgcState& msg, uint8_t sb_length)
+void AgcStateParser(It it, AgcStateT& msg, uint8_t sb_length)
 {
     qiLittleEndianParser(it, msg.frontend_id);
     qiLittleEndianParser(it, msg.gain);
@@ -1436,13 +1582,13 @@ void AgcStateParser(It it, AgcState& msg, uint8_t sb_length)
  */
 template <typename It>
 [[nodiscard]] bool ReceiverStatusParser(ROSaicNodeBase* node, It it, It itEnd,
-                                        ReceiverStatus& msg)
+                                        ReceiverStatusT& msg, ReceiverStatusMsg& ros_msg)
 {
     if (!BlockHeaderParser(node, it, msg.block_header))
         return false;
     if (msg.block_header.id != 4014)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ReceiverStatusParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1455,7 +1601,7 @@ template <typename It>
     if (msg.n > 18)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Too many AGCState " + std::to_string(msg.n));
+                  "ReceiverStatusParser error: Too many AGCState " + std::to_string(msg.n));
         return false;
     }
     qiLittleEndianParser(it, msg.sb_length);
@@ -1468,9 +1614,10 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ReceiverStatusParser error: iterator past end.");
         return false;
     }
+    msg.toROSMsg(ros_msg);
     return true;
 };
 
@@ -1486,7 +1633,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 5914)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ReceiverTimeParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1500,7 +1647,7 @@ template <typename It>
     qiLittleEndianParser(it, msg.sync_level);
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ReceiverTimeParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1519,7 +1666,7 @@ template <typename It>
         return false;
     if ((msg.block_header.id != 4226) && (msg.block_header.id != 4230))
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "INSNavGeodParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1636,7 +1783,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "INSNavGeodParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1654,7 +1801,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4224)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "IMUSetupParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1674,7 +1821,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "IMUSetupParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1693,7 +1840,7 @@ template <typename It>
         return false;
     if (msg.block_header.id != 4244)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "VelSensorSetupParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1709,7 +1856,7 @@ template <typename It>
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "VelSensorSetupParser error: iterator past end.");
         return false;
     }
     return true;
@@ -1728,7 +1875,7 @@ ExtSensorMeasParser(ROSaicNodeBase* node, It it, It itEnd, ExtSensorMeasMsg& msg
         return false;
     if (msg.block_header.id != 4050)
     {
-        node->log(log_level::ERROR, "Parse error: Wrong header ID " +
+        node->log(log_level::ERROR, "ExtSensorMeasParser error: Wrong header ID " +
                                         std::to_string(msg.block_header.id));
         return false;
     }
@@ -1737,7 +1884,7 @@ ExtSensorMeasParser(ROSaicNodeBase* node, It it, It itEnd, ExtSensorMeasMsg& msg
     if (msg.sb_length != 28)
     {
         node->log(log_level::ERROR,
-                  "Parse error: Wrong sb_length " + std::to_string(msg.sb_length));
+                  "ExtSensorMeasParser error: Wrong sb_length " + std::to_string(msg.sb_length));
         return false;
     }
 
@@ -1828,7 +1975,7 @@ ExtSensorMeasParser(ROSaicNodeBase* node, It it, It itEnd, ExtSensorMeasMsg& msg
         {
             node->log(
                 log_level::DEBUG,
-                "Unknown external sensor measurement type in SBF ExtSensorMeas: " +
+                "ExtSensorMeasParser Unknown external sensor measurement type in SBF ExtSensorMeas: " +
                     std::to_string(msg.type[i]));
             std::advance(it, 24);
             break;
@@ -1837,9 +1984,1132 @@ ExtSensorMeasParser(ROSaicNodeBase* node, It it, It itEnd, ExtSensorMeasMsg& msg
     }
     if (it > itEnd)
     {
-        node->log(log_level::ERROR, "Parse error: iterator past end.");
+        node->log(log_level::ERROR, "ExtSensorMeasParser error: iterator past end.");
         return false;
     }
     hasImuMeas = hasAcc && hasOmega;
     return true;
 };
+
+/**
+ * GPSNavParser
+ * @brief Qi based parser for the SBF block "GPSNav"
+ */
+template <typename It>
+[[nodiscard]] bool GPSNavParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GPSNavMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5891)
+    {
+        node->log(log_level::ERROR, "GPSNavParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved1);
+    qiLittleEndianParser(it, msg.wn);
+    qiLittleEndianParser(it, msg.ca_or_p_on_l2);
+    qiLittleEndianParser(it, msg.ura);
+    qiLittleEndianParser(it, msg.health);
+    qiLittleEndianParser(it, msg.l2_data_flag);
+    qiLittleEndianParser(it, msg.iodc);
+    qiLittleEndianParser(it, msg.iode2);
+    qiLittleEndianParser(it, msg.iode3);
+    qiLittleEndianParser(it, msg.fit_int_flg);
+    qiLittleEndianParser(it, msg.reserved2);
+    qiLittleEndianParser(it, msg.t_gd);
+    qiLittleEndianParser(it, msg.t_oc);
+    qiLittleEndianParser(it, msg.a_f2);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.c_rs);
+    qiLittleEndianParser(it, msg.del_n);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.c_uc);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.c_us);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.t_oe);
+    qiLittleEndianParser(it, msg.c_ic);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.c_is);
+    qiLittleEndianParser(it, msg.i_0);
+    qiLittleEndianParser(it, msg.c_rc);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.i_dot);
+    qiLittleEndianParser(it, msg.wnt_oc);
+    qiLittleEndianParser(it, msg.wnt_oe);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GPSNavParse error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GPSAlmParser
+ * @brief Qi based parser for the SBF block "GPSAlm"
+ */
+template <typename It>
+[[nodiscard]] bool GPSAlmParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GPSAlmMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5892)
+    {
+        node->log(log_level::ERROR, "GPSAlmParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.t_oa);
+    qiLittleEndianParser(it, msg.delta_i);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.wn_a);
+    qiLittleEndianParser(it, msg.config);
+    qiLittleEndianParser(it, msg.health8);
+    qiLittleEndianParser(it, msg.health6);
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GPSAlmParser error: iterator past end.");
+        return false;
+    }
+    return true;
+};
+
+/**
+ * GPSIonParser
+ * @brief Qi based parser for the SBF block "GPSIon"
+ */
+template <typename It>
+[[nodiscard]] bool GPSIonParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GPSIonMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5893)
+    {
+        node->log(log_level::ERROR, "GPSIonParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.alpha_0);
+    qiLittleEndianParser(it, msg.alpha_1);
+    qiLittleEndianParser(it, msg.alpha_2);
+    qiLittleEndianParser(it, msg.alpha_3);
+    qiLittleEndianParser(it, msg.beta_0);
+    qiLittleEndianParser(it, msg.beta_1);
+    qiLittleEndianParser(it, msg.beta_2);
+    qiLittleEndianParser(it, msg.beta_3);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GPSIonParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GPSUtcParser
+ * @brief Qi based parser for the SBF block "GPSIon"
+ */
+template <typename It>
+[[nodiscard]] bool GPSUtcParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GPSUtcMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5894)
+    {
+        node->log(log_level::ERROR, "GPSUtcParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.a_1);
+    qiLittleEndianParser(it, msg.a_0);
+    qiLittleEndianParser(it, msg.t_ot);
+    qiLittleEndianParser(it, msg.wn_t);
+    qiLittleEndianParser(it, msg.del_t_ls);
+    qiLittleEndianParser(it, msg.wn_lsf);
+    qiLittleEndianParser(it, msg.dn);
+    qiLittleEndianParser(it, msg.del_t_lsf);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GPSUtcParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GLONavParser
+ * @brief Qi based parser for the SBF block "GLONav"
+ */
+template <typename It>
+[[nodiscard]] bool GLONavParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GLONavMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4004)
+    {
+        node->log(log_level::ERROR, "GLONavParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.freq_nr);
+    qiLittleEndianParser(it, msg.x);
+    qiLittleEndianParser(it, msg.y);
+    qiLittleEndianParser(it, msg.z);
+    qiLittleEndianParser(it, msg.dx);
+    qiLittleEndianParser(it, msg.dy);
+    qiLittleEndianParser(it, msg.dz);
+    qiLittleEndianParser(it, msg.ddx);
+    qiLittleEndianParser(it, msg.ddz);
+    qiLittleEndianParser(it, msg.gamma);
+    qiLittleEndianParser(it, msg.tau);
+    qiLittleEndianParser(it, msg.dtau);
+    qiLittleEndianParser(it, msg.t_oe);
+    qiLittleEndianParser(it, msg.wn_toe);
+    qiLittleEndianParser(it, msg.p1);
+    qiLittleEndianParser(it, msg.p2);
+    qiLittleEndianParser(it, msg.capital_e);
+    qiLittleEndianParser(it, msg.capital_b);
+    qiLittleEndianParser(it, msg.tb);
+    qiLittleEndianParser(it, msg.capital_m);
+    qiLittleEndianParser(it, msg.capital_p);
+    qiLittleEndianParser(it, msg.l_health_flag);
+    qiLittleEndianParser(it, msg.p4);
+    qiLittleEndianParser(it, msg.n_t);
+    qiLittleEndianParser(it, msg.f_t);
+    qiLittleEndianParser(it, msg.p4);
+
+    if (msg.block_header.revision > 0)
+    {
+        qiLittleEndianParser(it, msg.capital_c);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GLONavParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GLOAlmParser
+ * @brief Qi based parser for the SBF block "GLOAlm"
+ */
+template <typename It>
+[[nodiscard]] bool GLOAlmParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GLOAlmMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4005)
+    {
+        node->log(log_level::ERROR, "GLOAlmParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.freq_nr);
+    qiLittleEndianParser(it, msg.epsilon);
+    qiLittleEndianParser(it, msg.t_oa);
+    qiLittleEndianParser(it, msg.delta_i);
+    qiLittleEndianParser(it, msg.glo_lambda);
+    qiLittleEndianParser(it, msg.t_ln);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.delta_t);
+    qiLittleEndianParser(it, msg.d_delta_t);
+    qiLittleEndianParser(it, msg.tau);
+    qiLittleEndianParser(it, msg.wn_a);
+    qiLittleEndianParser(it, msg.capital_c);
+    qiLittleEndianParser(it, msg.capital_n);
+    qiLittleEndianParser(it, msg.capital_m);
+    qiLittleEndianParser(it, msg.capital_n_4);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GLOAlmParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GLOTimeParser
+ * @brief Qi based parser for the SBF block "GLOTime"
+ */
+template <typename It>
+[[nodiscard]] bool GLOTimeParser(ROSaicNodeBase* node, It it, It itEnd,
+                                 GLOTimeMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4036)
+    {
+        node->log(log_level::ERROR, "GLOTimeParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.freq_nr);
+    qiLittleEndianParser(it, msg.n_4);
+    qiLittleEndianParser(it, msg.kp);
+    qiLittleEndianParser(it, msg.capital_n);
+    qiLittleEndianParser(it, msg.tau_gps);
+    qiLittleEndianParser(it, msg.tau_c);
+    qiLittleEndianParser(it, msg.b1);
+    qiLittleEndianParser(it, msg.b2);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GLOTimeParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GALNavParser
+ * @brief Qi based parser for the SBF block "GALNav"
+ */
+template <typename It>
+[[nodiscard]] bool GALNavParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GALNavMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4002)
+    {
+        node->log(log_level::ERROR, "GALNavParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.i_0);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.i_dot);
+    qiLittleEndianParser(it, msg.del_n);
+    qiLittleEndianParser(it, msg.c_uc);
+    qiLittleEndianParser(it, msg.c_us);
+    qiLittleEndianParser(it, msg.c_rc);
+    qiLittleEndianParser(it, msg.c_rs);
+    qiLittleEndianParser(it, msg.c_ic);
+    qiLittleEndianParser(it, msg.c_is);
+    qiLittleEndianParser(it, msg.t_oe);
+    qiLittleEndianParser(it, msg.t_oc);
+    qiLittleEndianParser(it, msg.a_f2);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.wnt_oe);
+    qiLittleEndianParser(it, msg.wnt_oc);
+    qiLittleEndianParser(it, msg.iod_nav);
+    qiLittleEndianParser(it, msg.health_ossol);
+    qiLittleEndianParser(it, msg.healteh_prs);
+    qiLittleEndianParser(it, msg.sisa_l1_e5a);
+    qiLittleEndianParser(it, msg.sisa_l1_e5b);
+    qiLittleEndianParser(it, msg.sisa_l1a_e6a);
+    qiLittleEndianParser(it, msg.bgd_l1_e5a);
+    qiLittleEndianParser(it, msg.bgd_l1_e5b);
+    qiLittleEndianParser(it, msg.bgd_l1a_e6a);
+    qiLittleEndianParser(it, msg.c_nav_enc);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALNavParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GALAlmParser
+ * @brief Qi based parser for the SBF block "GALAlm"
+ */
+template <typename It>
+[[nodiscard]] bool GALAlmParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GALAlmMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4003)
+    {
+        node->log(log_level::ERROR, "GALAlmParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.t_oa);
+    qiLittleEndianParser(it, msg.delta_i);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.wn_a);
+    qiLittleEndianParser(it, msg.sv_id_a);
+    qiLittleEndianParser(it, msg.health);
+    qiLittleEndianParser(it, msg.iod_a);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALAlmParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GALIonParser
+ * @brief Qi based parser for the SBF block "GALIon"
+ */
+template <typename It>
+[[nodiscard]] bool GALIonParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GALIonMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4030)
+    {
+        node->log(log_level::ERROR, "GALIonParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.a_i0);
+    qiLittleEndianParser(it, msg.a_i1);
+    qiLittleEndianParser(it, msg.a_i2);
+    qiLittleEndianParser(it, msg.storm_flags);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALIonParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GALUtcParser
+ * @brief Qi based parser for the SBF block "GALUtc"
+ */
+template <typename It>
+[[nodiscard]] bool GALUtcParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GALUtcMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4031)
+    {
+        node->log(log_level::ERROR, "GALUtcParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.a_1);
+    qiLittleEndianParser(it, msg.a_0);
+    qiLittleEndianParser(it, msg.t_ot);
+    qiLittleEndianParser(it, msg.wn_ot);
+    qiLittleEndianParser(it, msg.del_t_ls);
+    qiLittleEndianParser(it, msg.wn_lsf);
+    qiLittleEndianParser(it, msg.dn);
+    qiLittleEndianParser(it, msg.del_t_lsf);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALUtcParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GALGstGpsParser
+ * @brief Qi based parser for the SBF block "GALGstGps"
+ */
+template <typename It>
+[[nodiscard]] bool GALGstGpsParser(ROSaicNodeBase* node, It it, It itEnd,
+                                   GALGstGpsMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4032)
+    {
+        node->log(log_level::ERROR, "GALGstGpsParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.a_1g);
+    qiLittleEndianParser(it, msg.a_0g);
+    qiLittleEndianParser(it, msg.t_og);
+    qiLittleEndianParser(it, msg.wn_og);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALGstGpsParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * BDSNavParser
+ * @brief Qi based parser for the SBF block "BDSNav"
+ */
+template <typename It>
+[[nodiscard]] bool BDSNavParser(ROSaicNodeBase* node, It it, It itEnd,
+                                BDSNavMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4081)
+    {
+        node->log(log_level::ERROR, "BDSNavParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.wn);
+    qiLittleEndianParser(it, msg.ura);
+    qiLittleEndianParser(it, msg.sat_h1);
+    qiLittleEndianParser(it, msg.iod_c);
+    qiLittleEndianParser(it, msg.iod_e);
+    qiLittleEndianParser(it, msg.reserved2);
+    qiLittleEndianParser(it, msg.t_gd1);
+    qiLittleEndianParser(it, msg.t_gd2);
+    qiLittleEndianParser(it, msg.t_oc);
+    qiLittleEndianParser(it, msg.a_f2);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.c_rs);
+    qiLittleEndianParser(it, msg.del_n);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.c_uc);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.c_us);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.t_oe);
+    qiLittleEndianParser(it, msg.c_ic);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.c_is);
+    qiLittleEndianParser(it, msg.i_0);
+    qiLittleEndianParser(it, msg.c_rc);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.i_dot);
+    qiLittleEndianParser(it, msg.wnt_oc);
+    qiLittleEndianParser(it, msg.wnt_oe);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GALGstGpsParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * BDSAlmParser
+ * @brief Qi based parser for the SBF block "BDSAlm"
+ */
+template <typename It>
+[[nodiscard]] bool BDSAlmParser(ROSaicNodeBase* node, It it, It itEnd,
+                                BDSAlmMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4119)
+    {
+        node->log(log_level::ERROR, "BDSAlmParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.wn_a);
+    qiLittleEndianParser(it, msg.t_oa);
+    qiLittleEndianParser(it, msg.sqrt_a);
+    qiLittleEndianParser(it, msg.ecc);
+    qiLittleEndianParser(it, msg.omega);
+    qiLittleEndianParser(it, msg.m_0);
+    qiLittleEndianParser(it, msg.omega_0);
+    qiLittleEndianParser(it, msg.omega_dot);
+    qiLittleEndianParser(it, msg.delta_i);
+    qiLittleEndianParser(it, msg.a_f0);
+    qiLittleEndianParser(it, msg.a_f1);
+    qiLittleEndianParser(it, msg.health);
+    qiLittleEndianParser(it, msg.reserved[0]);
+    qiLittleEndianParser(it, msg.reserved[1]);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "BDSAlmParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * BDSIonParser
+ * @brief Qi based parser for the SBF block "BDSIon"
+ */
+template <typename It>
+[[nodiscard]] bool BDSIonParser(ROSaicNodeBase* node, It it, It itEnd,
+                                BDSIonMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4120)
+    {
+        node->log(log_level::ERROR, "BDSIonParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.alpha_0);
+    qiLittleEndianParser(it, msg.alpha_1);
+    qiLittleEndianParser(it, msg.alpha_2);
+    qiLittleEndianParser(it, msg.alpha_3);
+    qiLittleEndianParser(it, msg.beta_0);
+    qiLittleEndianParser(it, msg.beta_1);
+    qiLittleEndianParser(it, msg.beta_2);
+    qiLittleEndianParser(it, msg.beta_3);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "BDSIonParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * BDSUtcParser
+ * @brief Qi based parser for the SBF block "BDSUtc"
+ */
+template <typename It>
+[[nodiscard]] bool BDSUtcParser(ROSaicNodeBase* node, It it, It itEnd,
+                                BDSUtcMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4121)
+    {
+        node->log(log_level::ERROR, "BDSUtcParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.a_1);
+    qiLittleEndianParser(it, msg.a_0);
+    qiLittleEndianParser(it, msg.del_t_ls);
+    qiLittleEndianParser(it, msg.wn_lsf);
+    qiLittleEndianParser(it, msg.dn);
+    qiLittleEndianParser(it, msg.del_t_lsf);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "BDSUtcParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * FastCorrParser
+ * @brief Qi based parser for the SBF sub-block "FastCorr"
+ */
+template <typename It>
+void FastCorrParser(It& it, FastCorrMsg& msg, uint8_t sb_length)
+{
+    qiLittleEndianParser(it, msg.prn_mask_no);
+    qiLittleEndianParser(it, msg.udrei);
+    std::advance(it, 2); // skip reserved
+    qiLittleEndianParser(it, msg.prc);
+    std::advance(it, sb_length - 8); // skip padding
+};
+
+/**
+ * GEOFastCorrParser
+ * @brief Qi based parser for the SBF block "GEOFastCorr"
+ */
+template <typename It>
+[[nodiscard]] bool GEOFastCorrParser(ROSaicNodeBase* node, It it, It itEnd,
+                                     GEOFastCorrMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5927)
+    {
+        node->log(log_level::ERROR, "GEOFastCorrParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.mt);
+    qiLittleEndianParser(it, msg.iod_prn);
+    qiLittleEndianParser(it, msg.iod_fast_corr);
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    msg.fast_corr.resize(msg.n);
+    for (auto & fast_corr : msg.fast_corr)
+    {
+        FastCorrParser(it, fast_corr, msg.sb_length);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GEOFastCorrParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GEONavParser
+ * @brief Qi based parser for the SBF block "GEONav"
+ */
+template <typename It>
+[[nodiscard]] bool GEONavParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GEONavMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5896)
+    {
+        node->log(log_level::ERROR, "GEONavParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.iod_n);
+    qiLittleEndianParser(it, msg.ura);
+    qiLittleEndianParser(it, msg.t0);
+    qiLittleEndianParser(it, msg.x_g);
+    qiLittleEndianParser(it, msg.y_g);
+    qiLittleEndianParser(it, msg.z_g);
+    qiLittleEndianParser(it, msg.dx_g);
+    qiLittleEndianParser(it, msg.dy_g);
+    qiLittleEndianParser(it, msg.dz_g);
+    qiLittleEndianParser(it, msg.ddx_g);
+    qiLittleEndianParser(it, msg.ddy_g);
+    qiLittleEndianParser(it, msg.ddz_g);
+    qiLittleEndianParser(it, msg.ag_f0);
+    qiLittleEndianParser(it, msg.ag_f1);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GEONavParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GEONetworkTimeParser
+ * @brief Qi based parser for the SBF block "GEONetworkTime"
+ */
+template <typename It>
+[[nodiscard]] bool GEONetworkTimeParser(ROSaicNodeBase* node, It it, It itEnd,
+                                        GEONetworkTimeMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5918)
+    {
+        node->log(log_level::ERROR, "GEONetworkTimeParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.a_1);
+    qiLittleEndianParser(it, msg.a_0);
+    qiLittleEndianParser(it, msg.t_ot);
+    qiLittleEndianParser(it, msg.wn_t);
+    qiLittleEndianParser(it, msg.del_t_ls);
+    qiLittleEndianParser(it, msg.wn_lsf);
+    qiLittleEndianParser(it, msg.dn);
+    qiLittleEndianParser(it, msg.del_t_lsf);
+    qiLittleEndianParser(it, msg.utc_std);
+    qiLittleEndianParser(it, msg.gps_wn);
+    qiLittleEndianParser(it, msg.gps_tow);
+    qiLittleEndianParser(it, msg.glonass_id);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GEONetworkTimeParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * GEOAlmParser
+ * @brief Qi based parser for the SBF block "GEOAlm"
+ */
+template <typename It>
+[[nodiscard]] bool GEOAlmParser(ROSaicNodeBase* node, It it, It itEnd,
+                                GEOAlmMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5918)
+    {
+        node->log(log_level::ERROR, "GEOAlmParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.reserved0);
+    qiLittleEndianParser(it, msg.health);
+    qiLittleEndianParser(it, msg.t_oa);
+    qiLittleEndianParser(it, msg.x_g);
+    qiLittleEndianParser(it, msg.y_g);
+    qiLittleEndianParser(it, msg.z_g);
+    qiLittleEndianParser(it, msg.dx_g);
+    qiLittleEndianParser(it, msg.dy_g);
+    qiLittleEndianParser(it, msg.dz_g);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GEOAlmParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * LTCorrParser
+ * @brief Qi based parser for the SBF sub-block "LTCorr"
+ */
+template <typename It>
+void LTCorrParser(It& it, LTCorrMsg& msg, uint8_t sb_length)
+{
+    qiLittleEndianParser(it, msg.velocity_code);
+    qiLittleEndianParser(it, msg.prn_mask_no);
+    qiLittleEndianParser(it, msg.iod_prn);
+    qiLittleEndianParser(it, msg.iod_eph);
+    qiLittleEndianParser(it, msg.dx);
+    qiLittleEndianParser(it, msg.dy);
+    qiLittleEndianParser(it, msg.dz);
+    qiLittleEndianParser(it, msg.ddx);
+    qiLittleEndianParser(it, msg.ddy);
+    qiLittleEndianParser(it, msg.ddz);
+    qiLittleEndianParser(it, msg.da_f0);
+    qiLittleEndianParser(it, msg.da_f1);
+    qiLittleEndianParser(it, msg.t_oe);
+    std::advance(it, sb_length - 40); // skip padding
+};
+
+/**
+ * GEOLongTermCorrParser
+ * @brief Qi based parser for the SBF block "GEOLongTermCorr"
+ */
+template <typename It>
+[[nodiscard]] bool GEOLongTermCorrParser(ROSaicNodeBase* node, It it, It itEnd,
+                                         GEOLongTermCorrMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5932)
+    {
+        node->log(log_level::ERROR, "GEOLongTermCorrParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.prn);
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    std::advance(it, 3); // skip reserved
+    msg.lt_corr.resize(msg.n);
+    for (auto & lt_corr : msg.lt_corr)
+    {
+        LTCorrParser(it, lt_corr, msg.sb_length);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "GEOLongTermCorrParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * DiffCorrInParser
+ * @brief Qi based parser for the SBF block "DiffCorrIn"
+ */
+template <typename It>
+[[nodiscard]] bool DiffCorrInParser(ROSaicNodeBase* node, It it, It itEnd,
+                                    DiffCorrInMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5919)
+    {
+        node->log(log_level::ERROR, "DiffCorrInParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.mode);
+    qiLittleEndianParser(it, msg.source);
+
+    if (msg.mode == DiffCorrInMsg::RTCMV2)
+    {
+        for (size_t i = 0; i < 2; i++)
+        {
+            uint32_t temp;
+            qiLittleEndianParser(it, temp);
+            msg.rtcm2_words.emplace_back(temp);
+        }
+        const auto N = 2 + ((msg.rtcm2_words[1]>>9) & 0x1f);
+        for (size_t i = 2; i < N; i++)
+        {
+            uint32_t temp;
+            qiLittleEndianParser(it, temp);
+            msg.rtcm2_words.emplace_back(temp);
+        }
+    }
+    else
+    {
+        do
+        {
+            uint8_t temp;
+            qiLittleEndianParser(it, temp);
+            if (msg.mode == DiffCorrInMsg::CMRV2)
+                msg.cmr_message.emplace_back(temp);
+            else if (msg.mode == DiffCorrInMsg::RTCMV3)
+                msg.rtcm3_message.emplace_back(temp);
+            else if (msg.mode == DiffCorrInMsg::RTCMV)
+                msg.rtcmv_message.emplace_back(temp);
+        } while (it != itEnd);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "DiffCorrInParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * BaseStationParser
+ * @brief Qi based parser for the SBF block "BaseStation"
+ */
+template <typename It>
+[[nodiscard]] bool BaseStationParser(ROSaicNodeBase* node, It it, It itEnd,
+                                     BaseStationMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5949)
+    {
+        node->log(log_level::ERROR, "BaseStationParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.base_station_id);
+    qiLittleEndianParser(it, msg.base_type);
+    qiLittleEndianParser(it, msg.source);
+    qiLittleEndianParser(it, msg.datum);
+    qiLittleEndianParser(it, msg.reserved);
+    qiLittleEndianParser(it, msg.x);
+    qiLittleEndianParser(it, msg.y);
+    qiLittleEndianParser(it, msg.z);
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "BaseStationParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * SatInfoParser
+ * @brief Qi based parser for the SBF sub-block "SatInfo"
+ */
+template <typename It>
+void SatInfoParser(It& it, SatInfoMsg& msg, uint8_t sb_length)
+{
+    qiLittleEndianParser(it, msg.sv_id);
+    qiLittleEndianParser(it, msg.freq_nr);
+    qiLittleEndianParser(it, msg.azimuth);
+    qiLittleEndianParser(it, msg.elevation);
+    qiLittleEndianParser(it, msg.rise_set);
+    qiLittleEndianParser(it, msg.satellite_info);
+    std::advance(it, sb_length - 8); // skip padding
+};
+
+/**
+ * SatVisibilityParser
+ * @brief Qi based parser for the SBF block "SatVisibility"
+ */
+template <typename It>
+[[nodiscard]] bool SatVisibilityParser(ROSaicNodeBase* node, It it, It itEnd,
+                                       SatVisibilityMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4012)
+    {
+        node->log(log_level::ERROR, "SatVisibilityParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    msg.sat_info.resize(msg.n);
+    for (auto & sat_info : msg.sat_info)
+    {
+        SatInfoParser(it, sat_info, msg.sb_length);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "SatVisibilityParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * NtripClientConnectionParser
+ * @brief Qi based parser for the SBF sub-block "NtripClientConnection"
+ */
+template <typename It>
+void NtripClientConnectionParser(It& it, NtripClientConnectionMsg& msg, uint8_t sb_length)
+{
+    qiLittleEndianParser(it, msg.cd_index);
+    qiLittleEndianParser(it, msg.status);
+    qiLittleEndianParser(it, msg.error_code);
+    qiLittleEndianParser(it, msg.info);
+    std::advance(it, sb_length - 4); // skip padding
+};
+
+/**
+ * NtripClientStatusParser
+ * @brief Qi based parser for the SBF block "NtripClientStatus"
+ */
+template <typename It>
+[[nodiscard]] bool NtripClientStatusParser(ROSaicNodeBase* node, It it, It itEnd,
+                                           NtripClientStatusMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 4053)
+    {
+        node->log(log_level::ERROR, "NtripClientStatusParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    msg.ntrip_connections.resize(msg.n);
+    for (auto & ntrip_connection : msg.ntrip_connections)
+    {
+        NtripClientConnectionParser(it, ntrip_connection, msg.sb_length);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "NtripClientStatusParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * AuxAntPositionParser
+ * @brief Qi based parser for the SBF sub-block "AuxAntPositionP"
+ */
+template <typename It>
+void AuxAntPositionParser(It& it, AuxAntPositionMsg& msg, uint8_t sb_length)
+{
+    qiLittleEndianParser(it, msg.nr_sv);
+    qiLittleEndianParser(it, msg.error);
+    qiLittleEndianParser(it, msg.ambiguity_type);
+    qiLittleEndianParser(it, msg.auxant_id);
+    qiLittleEndianParser(it, msg.delta_east);
+    qiLittleEndianParser(it, msg.delta_north);
+    qiLittleEndianParser(it, msg.delta_up);
+    qiLittleEndianParser(it, msg.east_vel);
+    qiLittleEndianParser(it, msg.north_vel);
+    qiLittleEndianParser(it, msg.up_vel);
+    std::advance(it, sb_length - 52); // skip padding
+};
+
+/**
+ * AuxAntPositionsParser
+ * @brief Qi based parser for the SBF block "AuxAntPositions"
+ */
+template <typename It>
+[[nodiscard]] bool AuxAntPositionsParser(ROSaicNodeBase* node, It it, It itEnd,
+                                         AuxAntPositionsMsg& msg)
+{
+    if (!BlockHeaderParser(node, it, msg.block_header))
+        return false;
+    if (msg.block_header.id != 5942)
+    {
+        node->log(log_level::ERROR, "AuxAntPositionsParser error: Wrong header ID " +
+                                        std::to_string(msg.block_header.id));
+        return false;
+    }
+    qiLittleEndianParser(it, msg.n);
+    qiLittleEndianParser(it, msg.sb_length);
+    msg.auxant_positions.resize(msg.n);
+    for (auto & auxant_position : msg.auxant_positions)
+    {
+        AuxAntPositionParser(it, auxant_position, msg.sb_length);
+    }
+
+    if (it > itEnd)
+    {
+        node->log(log_level::ERROR, "AuxAntPositionsParser error: iterator past end.");
+        return false;
+    }
+    return true;
+}

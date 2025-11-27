@@ -692,9 +692,9 @@ namespace io {
             if ((last_insnavgeod_.sb_list & 8) != 0)
             {
                 // Linear velocity in navigation frame
-                double ve = last_insnavgeod_.ve;
-                double vn = last_insnavgeod_.vn;
-                double vu = last_insnavgeod_.vu;
+                const double ve = last_insnavgeod_.ve;
+                const double vn = last_insnavgeod_.vn;
+                const double vu = last_insnavgeod_.vu;
                 Eigen::Vector3d vel;
                 if (settings_->use_ros_axis_orientation)
                 {
@@ -796,9 +796,9 @@ namespace io {
             if (last_pvtgeodetic_.error == 0)
             {
                 // Linear velocity in navigation frame
-                double ve = last_pvtgeodetic_.ve;
-                double vn = last_pvtgeodetic_.vn;
-                double vu = last_pvtgeodetic_.vu;
+                const double ve = last_pvtgeodetic_.ve;
+                const double vn = last_pvtgeodetic_.vn;
+                const double vu = last_pvtgeodetic_.vu;
                 Eigen::Vector3d vel;
                 if (settings_->use_ros_axis_orientation)
                 {
@@ -2083,8 +2083,8 @@ namespace io {
 
     Timestamp MessageHandler::timestampSBF(const std::vector<uint8_t>& message) const
     {
-        uint32_t tow = parsing_utilities::getTow(message);
-        uint16_t wnc = parsing_utilities::getWnc(message);
+        const uint32_t tow = parsing_utilities::getTow(message);
+        const uint16_t wnc = parsing_utilities::getWnc(message);
 
         if (!validValue(tow) || !validValue(wnc))
             return 0;
@@ -2559,6 +2559,22 @@ namespace io {
                 assembleGpsFix();
             break;
         }
+        case MEAS_EXTRA:
+        {
+            if (settings_->publish_measextra)
+            {
+                MeasExtraMsg msg;
+                if (!MeasExtraParser(node_, telegram->message.begin(),
+                                 telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in MeasExtra");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<MeasExtraMsg>("measextra", msg);
+            }
+            break;
+        }
         case DOP:
         {
             if (!DOPParser(node_, telegram->message.begin(), telegram->message.end(),
@@ -2589,7 +2605,6 @@ namespace io {
         }
         case VEL_COV_GEODETIC:
         {
-
             if (!VelCovGeodeticParser(node_, telegram->message.begin(),
                                       telegram->message.end(), last_velcovgeodetic_))
             {
@@ -2606,36 +2621,55 @@ namespace io {
         }
         case RECEIVER_STATUS:
         {
+            ReceiverStatusMsg ros_msg;
             if (!ReceiverStatusParser(node_, telegram->message.begin(),
-                                      telegram->message.end(), last_receiverstatus_))
+                                      telegram->message.end(), last_receiverstatus_, ros_msg))
             {
                 node_->log(log_level::ERROR, "parse error in ReceiverStatus");
                 break;
             }
             assembleDiagnosticArray(telegram);
+            if (settings_->publish_receiver_status)
+            {
+                assembleHeader(settings_->frame_id, telegram, ros_msg);
+                publish<ReceiverStatusMsg>("receiverstatus", ros_msg);
+            }
             break;
         }
         case QUALITY_IND:
         {
+            QuantityIndMsg ros_msg;
             if (!QualityIndParser(node_, telegram->message.begin(),
-                                  telegram->message.end(), last_qualityind_))
+                                  telegram->message.end(), last_qualityind_, ros_msg))
             {
                 node_->log(log_level::ERROR, "parse error in QualityInd");
                 break;
             }
             assembleDiagnosticArray(telegram);
+            if (settings_->publish_quality_ind)
+            {
+                assembleHeader(settings_->frame_id, telegram, ros_msg);
+                publish<QuantityIndMsg>("quanlityind", ros_msg);
+            }
             break;
         }
         case RECEIVER_SETUP:
         {
+            ReceiverSetupMsg ros_msg;
             if (!ReceiverSetupParser(node_, telegram->message.begin(),
-                                     telegram->message.end(), last_receiversetup_))
+                                     telegram->message.end(), last_receiversetup_, ros_msg))
             {
                 node_->log(log_level::ERROR, "parse error in ReceiverSetup");
                 break;
             }
             node_->log(log_level::DEBUG,
                        "receiver setup firmware: " + last_receiversetup_.rx_version);
+
+            if (settings_->publish_receiver_setup)
+            {
+                assembleHeader(settings_->frame_id, telegram, ros_msg);
+                publish<ReceiverSetupMsg>("receiversetup", ros_msg);
+            }
 
             static const int32_t ins_major = 1;
             static const int32_t ins_minor = 4;
@@ -2711,11 +2745,458 @@ namespace io {
                 break;
             }
             current_leap_seconds_ = msg.delta_ls;
+            if (settings_->publish_receiver_time)
+            {
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<ReceiverTimeMsg>("receivertime", msg);
+            }
+            break;
+        }
+        case AUXANT_POSITIONS:
+        {
+            if (settings_->publish_auxant_position)
+            {
+                AuxAntPositionsMsg msg;
+
+                if (!AuxAntPositionsParser(node_, telegram->message.begin(),
+                                          telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in AuxAntPositions");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<AuxAntPositionsMsg>("auxant_positions", msg);
+            }
+            break;
+        }
+        case BASESTATION:
+        {
+            if (settings_->publish_basestation)
+            {
+                BaseStationMsg msg;
+
+                if (!BaseStationParser(node_, telegram->message.begin(),
+                                       telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in BASESTATION");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<BaseStationMsg>("basestation", msg);
+            }
+            break;
+        }
+        case BDS_ALM:
+        {
+            if (settings_->publish_beidou_alm)
+            {
+                BDSAlmMsg msg;
+
+                if (!BDSAlmParser(node_, telegram->message.begin(),
+                                       telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in BDS_ALM");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<BDSAlmMsg>("beidou/alm", msg);
+            }
+            break;
+        }
+        case BDS_ION:
+        {
+            if (settings_->publish_beidou_ion)
+            {
+                BDSIonMsg msg;
+
+                if (!BDSIonParser(node_, telegram->message.begin(),
+                                       telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in BDS_ION");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<BDSIonMsg>("beidou/ion", msg);
+            }
+            break;
+        }
+        case BDS_NAV:
+        {
+            if (settings_->publish_beidou_nav)
+            {
+                BDSNavMsg msg;
+
+                if (!BDSNavParser(node_, telegram->message.begin(),
+                                       telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in BDS_NAV");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<BDSNavMsg>("beidou/nav", msg);
+            }
+            break;
+        }
+        case BDS_UTC:
+        {
+            if (settings_->publish_beidou_utc)
+            {
+                BDSUtcMsg msg;
+
+                if (!BDSUtcParser(node_, telegram->message.begin(),
+                                  telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in BDS_UTC");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<BDSUtcMsg>("beidou/utc", msg);
+            }
+            break;
+        }
+        case DIFF_CORR_IN:
+        {
+            if (settings_->publish_diff_correction)
+            {
+                DiffCorrInMsg msg;
+
+                if (!DiffCorrInParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in DIFF_CORR_IN");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<DiffCorrInMsg>("diff_correction", msg);
+            }
+            break;
+        }
+        case GAL_ALM:
+        {
+            if (settings_->publish_galileo_alm)
+            {
+                GALAlmMsg msg;
+
+                if (!GALAlmParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GAL_ALM");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GALAlmMsg>("galileo/alm", msg);
+            }
+            break;
+        }
+        case GAL_GST_GPS:
+        {
+            if (settings_->publish_galileo_gst_gps)
+            {
+                GALGstGpsMsg msg;
+
+                if (!GALGstGpsParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GAL_GST_GPS");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GALGstGpsMsg>("galileo/gst_gps", msg);
+            }
+            break;
+        }
+        case GAL_ION:
+        {
+            if (settings_->publish_galileo_ion)
+            {
+                GALIonMsg msg;
+
+                if (!GALIonParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GAL_ION");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GALIonMsg>("galileo/ion", msg);
+            }
+            break;
+        }
+        case GAL_NAV:
+        {
+            if (settings_->publish_galileo_nav)
+            {
+                GALNavMsg msg;
+
+                if (!GALNavParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GAL_NAV");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GALNavMsg>("galileo/nav", msg);
+            }
+            break;
+        }
+        case GAL_UTC:
+        {
+            if (settings_->publish_galileo_utc)
+            {
+                GALUtcMsg msg;
+
+                if (!GALUtcParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GAL_UTC");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GALUtcMsg>("galileo/utc", msg);
+            }
+            break;
+        }
+        case GEO_ALM:
+        {
+            if (settings_->publish_sbas_alm)
+            {
+                GEOAlmMsg msg;
+
+                if (!GEOAlmParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GEO_ALM");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GEOAlmMsg>("sbas/alm", msg);
+            }
+            break;
+        }
+        case GEO_Fast_CORR:
+        {
+            if (settings_->publish_sbas_fast_corr)
+            {
+                GEOFastCorrMsg msg;
+
+                if (!GEOFastCorrParser(node_, telegram->message.begin(),
+                                      telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GEO_Fast_CORR");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GEOFastCorrMsg>("sbas/fast_corr", msg);
+            }
+            break;
+        }
+        case GEO_LONGTERM_CORR:
+        {
+            if (settings_->publish_sbas_longterm_corr)
+            {
+                GEOLongTermCorrMsg msg;
+
+                if (!GEOLongTermCorrParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GEO_LONGTERM_CORR");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GEOLongTermCorrMsg>("sbas/longterm_corr", msg);
+            }
+            break;
+        }
+        case GEO_NAV:
+        {
+            if (settings_->publish_sbas_nav)
+            {
+                GEONavMsg msg;
+
+                if (!GEONavParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GEO_NAV");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GEONavMsg>("sbas/nav", msg);
+            }
+            break;
+        }
+        case GEO_NETWORK_TIME:
+        {
+            if (settings_->publish_sbas_network_time)
+            {
+                GEONetworkTimeMsg msg;
+
+                if (!GEONetworkTimeParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GEO_NETWORK_TIME");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GEONetworkTimeMsg>("sbas/network_time", msg);
+            }
+            break;
+        }
+        case GLO_ALM:
+        {
+            if (settings_->publish_glonass_alm)
+            {
+                GLOAlmMsg msg;
+
+                if (!GLOAlmParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GLO_ALM");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GLOAlmMsg>("glonass/alm", msg);
+            }
+            break;
+        }
+        case GLO_NAV:
+        {
+            if (settings_->publish_glonass_nav)
+            {
+                GLONavMsg msg;
+
+                if (!GLONavParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GLO_NAV");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GLONavMsg>("glonass/nav", msg);
+            }
+            break;
+        }
+        case GLO_TIME:
+        {
+            if (settings_->publish_glonass_time)
+            {
+                GLOTimeMsg msg;
+
+                if (!GLOTimeParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GLO_TIME");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GLOTimeMsg>("glonass/time", msg);
+            }
+            break;
+        }
+        case GPS_ALM:
+        {
+            if (settings_->publish_gps_alm)
+            {
+                GPSAlmMsg msg;
+
+                if (!GPSAlmParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GPS_ALM");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GPSAlmMsg>("gps/alm", msg);
+            }
+            break;
+        }
+        case GPS_NAV:
+        {
+            if (settings_->publish_gps_nav)
+            {
+                GPSNavMsg msg;
+
+                if (!GPSNavParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GPS_NAV");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GPSNavMsg>("gps/nav", msg);
+            }
+            break;
+        }
+        case GPS_ION:
+        {
+            if (settings_->publish_gps_ion)
+            {
+                GPSIonMsg msg;
+
+                if (!GPSIonParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GPS_ION");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GPSIonMsg>("gps/ion", msg);
+            }
+            break;
+        }
+        case GPS_UTC:
+        {
+            if (settings_->publish_gps_utc)
+            {
+                GPSUtcMsg msg;
+
+                if (!GPSUtcParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in GPS_UTC");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<GPSUtcMsg>("gps/utc", msg);
+            }
+            break;
+        }
+        case NTRIP_CLIENT_STATUS:
+        {
+            if (settings_->publish_ntrip_status)
+            {
+                NtripClientStatusMsg msg;
+
+                if (!NtripClientStatusParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in NTRIP_CLIENT_STATUS");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<NtripClientStatusMsg>("ntrip_status", msg);
+            }
+            break;
+        }
+        case SAT_VISIBILITY:
+        {
+            if (settings_->publish_satellite_visibility)
+            {
+                SatVisibilityMsg msg;
+
+                if (!SatVisibilityParser(node_, telegram->message.begin(),
+                                           telegram->message.end(), msg))
+                {
+                    node_->log(log_level::ERROR, "parse error in SAT_VISIBILITY");
+                    break;
+                }
+                assembleHeader(settings_->frame_id, telegram, msg);
+                publish<SatVisibilityMsg>("satellite_visibility", msg);
+            }
             break;
         }
         default:
         {
-            node_->log(log_level::DEBUG, "unhandled SBF block " +
+            node_->log(log_level::WARN, "unhandled SBF block " +
                                              std::to_string(sbfId) + " received.");
             break;
         }

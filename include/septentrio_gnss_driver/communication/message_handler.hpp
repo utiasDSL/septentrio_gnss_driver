@@ -114,8 +114,10 @@ enum SbfId
     POS_COV_GEODETIC = 5906,
     ATT_EULER = 5938,
     ATT_COV_EULER = 5939,
+    AUXANT_POSITIONS = 5942,
     CHANNEL_STATUS = 4013,
     MEAS_EPOCH = 4027,
+    MEAS_EXTRA = 4000,
     DOP = 4001,
     VEL_COV_CARTESIAN = 5907,
     VEL_COV_GEODETIC = 5908,
@@ -131,7 +133,34 @@ enum SbfId
     EXT_SENSOR_MEAS = 4050,
     RECEIVER_TIME = 5914,
     GAL_AUTH_STATUS = 4245,
-    RF_STATUS = 4092
+    RF_STATUS = 4092,
+    GPS_NAV = 5891,
+    GPS_ION = 5893,
+    GPS_UTC = 5894,
+    GPS_ALM = 5892,
+    GLO_NAV = 4004,
+    GLO_ALM = 4005,
+    GLO_TIME = 4036,
+    GAL_NAV = 4002,
+    GAL_ALM = 4003,
+    GAL_ION = 4030,
+    GAL_UTC = 4031,
+    GAL_GST_GPS = 4032,
+    BDS_NAV = 4081,
+    BDS_ALM = 4119,
+    BDS_ION = 4120,
+    BDS_UTC = 4121,
+    GEO_NAV = 5896,
+    GEO_UTC= 5896,
+    GEO_NETWORK_TIME = 5918,
+    GEO_ALM = 5897,
+    GEO_LONGTERM_CORR = 5932,
+    GEO_Fast_CORR = 5927,
+    GEO_ION_DELAY = 5933,
+    SAT_VISIBILITY = 4012,
+    NTRIP_CLIENT_STATUS = 4053,
+    DIFF_CORR_IN = 5919,
+    BASESTATION = 5949,
 };
 
 namespace io {
@@ -147,14 +176,14 @@ namespace io {
          * @brief Constructor of the MessageHandler class
          * @param[in] node Pointer to the node)
          */
-        MessageHandler(ROSaicNodeBase* node) :
+        explicit MessageHandler(ROSaicNodeBase* node) :
             node_(node), settings_(node->settings()), unix_time_(0)
         {
         }
 
         void setLeapSeconds()
         {
-            // set leap seconds to paramter if reading from file
+            // set leap seconds to parameter if reading from file
             if (settings_->read_from_sbf_log || settings_->read_from_pcap)
                 current_leap_seconds_ = settings_->leap_seconds;
         }
@@ -282,19 +311,19 @@ namespace io {
          * @brief Since DiagnosticArray needs ReceiverStatus, incoming ReceiverStatus
          * blocks need to be stored
          */
-        ReceiverStatus last_receiverstatus_;
+        ReceiverStatusT last_receiverstatus_;
 
         /**
          * @brief Since DiagnosticArray needs QualityInd, incoming QualityInd blocks
          * need to be stored
          */
-        QualityInd last_qualityind_;
+        QualityIndT last_qualityind_;
 
         /**
          * @brief Since DiagnosticArray needs ReceiverSetup, incoming ReceiverSetup
          * blocks need to be stored
          */
-        ReceiverSetup last_receiversetup_;
+        ReceiverSetupT last_receiversetup_;
 
         /**
          * @brief Stores incoming GALAuthStatus block

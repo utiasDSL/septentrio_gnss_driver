@@ -80,15 +80,15 @@ namespace rosaic_node {
      * @class ROSaicNode
      * @brief This class represents the ROsaic node, to be extended..
      */
-    class ROSaicNode : public ROSaicNodeBase
+    class ROSaicNode final : public ROSaicNodeBase
     {
     public:
         //! The constructor initializes and runs the ROSaic node, if everything works
         //! fine. It loads the user-defined ROS parameters, subscribes to Rx
         //! messages, and publishes requested ROS messages...
-        ROSaicNode(const rclcpp::NodeOptions& options);
+        explicit ROSaicNode(const rclcpp::NodeOptions& options);
 
-        ~ROSaicNode();
+        ~ROSaicNode() override;
 
     private:
         void setup();
@@ -125,7 +125,7 @@ namespace rosaic_node {
         void getRPY(const QuaternionMsg& qm, double& roll, double& pitch,
                     double& yaw) const;
 
-        void sendVelocity(const std::string& velNmea);
+        void sendVelocity(const std::string& velNmea) override;
 
         //! Handles communication with the Rx
         io::CommunicationCore IO_;

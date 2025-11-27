@@ -195,6 +195,7 @@ namespace rosaic_node {
         param("publish.gpgsa", settings_.publish_gpgsa, false);
         param("publish.gpgsv", settings_.publish_gpgsv, false);
         param("publish.measepoch", settings_.publish_measepoch, false);
+        param("publish.measextra", settings_.publish_measextra, false);
         param("publish.pvtcartesian", settings_.publish_pvtcartesian, false);
         param("publish.pvtgeodetic", settings_.publish_pvtgeodetic, false);
         param("publish.basevectorcart", settings_.publish_basevectorcart, false);
@@ -221,6 +222,37 @@ namespace rosaic_node {
         param("publish.twist", settings_.publish_twist, false);
         param("publish.tf", settings_.publish_tf, false);
         param("publish.tf_ecef", settings_.publish_tf_ecef, false);
+
+        param("publish.receiver_time", settings_.publish_receiver_time, false);
+        param("publish.auxant_position", settings_.publish_auxant_position, false);
+        param("publish.basestation", settings_.publish_basestation, false);
+        param("publish.beidou_alm", settings_.publish_beidou_alm, false);
+        param("publish.beidou_ion", settings_.publish_beidou_ion, false);
+        param("publish.beidou_nav", settings_.publish_beidou_nav, false);
+        param("publish.beidou_utc", settings_.publish_beidou_utc, false);
+        param("publish.diff_correction", settings_.publish_diff_correction, false);
+        param("publish.galileo_alm", settings_.publish_galileo_alm, false);
+        param("publish.galileo_gst_gps", settings_.publish_galileo_gst_gps, false);
+        param("publish.galileo_ion", settings_.publish_galileo_ion, false);
+        param("publish.galileo_nav", settings_.publish_galileo_nav, false);
+        param("publish.galileo_utc", settings_.publish_galileo_utc, false);
+        param("publish.sbas_alm", settings_.publish_sbas_alm, false);
+        param("publish.sbas_fast_correction", settings_.publish_sbas_fast_corr, false);
+        param("publish.sbas_longterm_correction", settings_.publish_sbas_longterm_corr, false);
+        param("publish.sbas_nav", settings_.publish_sbas_nav, false);
+        param("publish.sbas_network_time", settings_.publish_sbas_network_time, false);
+        param("publish.glonass_alm", settings_.publish_glonass_alm, false);
+        param("publish.glonass_nav", settings_.publish_glonass_nav, false);
+        param("publish.glonass_time", settings_.publish_glonass_time, false);
+        param("publish.gps_alm", settings_.publish_gps_alm, false);
+        param("publish.gps_nav", settings_.publish_gps_nav, false);
+        param("publish.gps_ion", settings_.publish_gps_ion, false);
+        param("publish.gps_utc", settings_.publish_gps_utc, false);
+        param("publish.ntrip_status", settings_.publish_ntrip_status, false);
+        param("publish.satellite_visibility", settings_.publish_satellite_visibility, false);
+        param("publish.receiver_status", settings_.publish_receiver_status, false);
+        param("publish.receiver_setup", settings_.publish_receiver_setup, false);
+        param("publish.quality_indicator", settings_.publish_quality_ind, false);
 
         if (settings_.publish_tf && settings_.publish_tf_ecef)
         {

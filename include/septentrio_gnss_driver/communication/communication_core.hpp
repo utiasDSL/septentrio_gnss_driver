@@ -106,7 +106,7 @@ namespace io {
          */
         ~CommunicationCore();
 
-        void close();
+        void close() const;
 
         /**
          * @brief Connects the data stream
@@ -124,7 +124,7 @@ namespace io {
          * manager_
          * @param cmd The command to hand over
          */
-        void sendVelocity(const std::string& velNmea);
+        void sendVelocity(const std::string& velNmea) const;
 
     private:
         /**

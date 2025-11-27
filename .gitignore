@@ -1,3 +1,6 @@
 #config/rover.yaml
 .vscode
 build
+.idea
+
+cmake-build*
